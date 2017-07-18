@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+
+# This script will setup a new bitbake project.  It uses the layer index
+# (layers.openembedded.org or similar) to determine which components and
+# their dependencies to install.
+
+# Copyrigth (C) 2016-2017 Wind River Systems, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+
+import logging
+import os
+import sys
+import argparse
+import signal
+
+bindir = os.path.dirname(__file__)
+topdir = os.path.dirname(bindir)
+sys.path[0:0] = [os.path.join(topdir, 'lib')]
+
+import bb.msg
+import bb.data
+import bb.parse
+
+logger = bb.msg.logger_create('BitBake', sys.stdout, preserve_handlers=True)
+
+def main():
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    parser = argparse.ArgumentParser(
+        description="BitBake project setup utility",
+        epilog="Use %(prog)s <subcommand> --help to get help on a specific command",
+        add_help=False)
+
+    parser.add_argument("-D", "--debug", action="count", dest="debug", default=0,
+                      help="Increase the debug level. You can specify this "
+                           "more than once. -D sets the debug level to 1, "
+                           "where only bb.debug(1, ...) messages are printed "
+                           "to stdout; -DD sets the debug level to 2, where "
+                           "both bb.debug(1, ...) and bb.debug(2, ...) "
+                           "messages are printed; etc. Without -D, no debug "
+                           "messages are printed. Note that -D only affects "
+                           "output to stdout. All debug messages are written "
+                           "to ${T}/log.do_taskname, regardless of the debug "
+                           "level.")
+
+    parser.add_argument('-q', '--quiet', action="count", dest="quiet", default=0,
+                        help="Output less log message data to the terminal. You can specify this more than once.")
+
+    parser.add_argument('--color', choices=['auto', 'always', 'never'], default='auto',
+                        help="Colorize output (where %(metavar)s is %(choices)s)", metavar='COLOR')
+
+    global_args, unparsed_args = parser.parse_known_args()
+
+    if global_args.quiet and global_args.debug:
+        logger.error("options --quiet and --debug are mutually exclusive")
+        return 1
+
+    if global_args.debug:
+        logger.setLevel(logging.DEBUG)
+    elif global_args.quiet:
+        logger.setLevel(logging.ERROR)
+
+    bb.msg.init_msgconfig(1, global_args.debug)
+
+    # Need to re-run logger_create with color argument
+    # (will be the same logger since it has the same name)
+    bb.msg.logger_create('bitbake-setup', output=sys.stdout, color=global_args.color)
+
+    # Help is added here rather than via add_help=True, as we don't want it to
+    # be handled by parse_known_args()
+    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                        help='show this help message and exit')
+
+    # Initialize variable space...
+    d = bb.data.init()
+    d.setVar('PROJECTDIR', os.getcwd())
+    d.setVar('DL_DIR', '${PROJECTDIR}/layer-cache')
+
+    subparsers = parser.add_subparsers(title='subcommands', metavar='<subcommand>')
+    subparsers.required = True
+    plugins = []
+    for path in [topdir]:
+        pluginpath = os.path.join(path, 'lib', 'bbsetup')
+        bb.utils.load_plugins(logger, plugins, pluginpath)
+
+    registered = False
+    for plugin in plugins:
+        if hasattr(plugin, 'register_commands'):
+            registered = True
+            plugin.init(d)
+            plugin.register_commands(subparsers)
+
+    if not registered:
+        logger.error("No commands registered - missing plugins?")
+        sys.exit(1)
+
+    parser.add_argument("config", help="setup configuration file")
+
+    args = parser.parse_args(unparsed_args, namespace=global_args)
+
+    d = bb.parse.handle(args.config, d, True)
+
+    logger.debug(1, "Using indexes: %s" % (d.getVar('BBLAYERINDEX_URI')))
+
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    try:
+        ret = main()
+    except bb.BBHandledException:
+        ret = 1
+    except Exception:
+        ret = 1
+        import traceback
+        traceback.print_exc()
+    sys.exit(ret)
+
