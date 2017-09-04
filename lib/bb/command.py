@@ -574,6 +574,9 @@ class CommandsSync:
         return DataStoreConnectionHandle(idx)
     parseRecipeFile.readonly = True
 
+    def invalidateParseCache(self, command, params):
+        command.cooker.parsecache_valid = False
+
 class CommandsAsync:
     """
     A class of asynchronous commands
