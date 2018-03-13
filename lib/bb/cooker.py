@@ -1051,17 +1051,6 @@ class BBCooker:
         tree = self.generatePkgDepTreeData(pkgs, 'build')
         bb.event.fire(bb.event.TargetsTreeGenerated(tree), self.data)
 
-    def interactiveMode( self ):
-        """Drop off into a shell"""
-        try:
-            from bb import shell
-        except ImportError:
-            parselog.exception("Interactive mode not available")
-            sys.exit(1)
-        else:
-            shell.start( self )
-
-
     def handleCollections(self, collections):
         """Handle collections"""
         errors = False
