@@ -11,6 +11,8 @@ from bblayers.common import LayerPlugin
 
 logger = logging.getLogger('bitbake-layers')
 
+import bblayerlib
+
 
 def plugin_init(plugins):
     return QueryPlugin()
@@ -19,11 +21,16 @@ def plugin_init(plugins):
 class QueryPlugin(LayerPlugin):
     def do_show_layers(self, args):
         """show current configured layers."""
+        bblayers = bblayerlib.BBLayers(self.tinfoil.config_data)
+
+        index = bblayers.load_bblayers()
+
         logger.plain("%s  %s  %s" % ("layer".ljust(20), "path".ljust(40), "priority"))
         logger.plain('=' * 74)
-        for layer, _, regex, pri in self.tinfoil.cooker.bbfile_config_priorities:
-            layerdir = self.bbfile_collections.get(layer, None)
-            layername = self.get_layer_name(layerdir)
+        for id, layerbranch in index.layerBranches.items():
+            layername = layerbranch.layer.name
+            layerdir = layerbranch.layer.localpath
+            pri = layerbranch.layer.priority
             logger.plain("%s  %s  %d" % (layername.ljust(20), layerdir.ljust(40), pri))
 
     def version_str(self, pe, pv, pr = None):
@@ -118,6 +125,16 @@ skipped recipes will also be listed, with a " (skipped)" suffix.
                 if not bb.utils.which(bbpath, classfile, history=False):
                     logger.error('No class named %s found in BBPATH', classfile)
                     sys.exit(1)
+
+        bblayers = bblayerlib.BBLayers(self.tinfoil.config_data)
+        index = bblayers.load_bblayers()
+        index = bblayers.load_recipes(tinfoil=self.tinfoil, full=False)
+
+        for id, recipe in index.recipes.items():
+            logger.plain('%s' % (recipe._data))
+            
+
+        sys.exit(1)
 
         pkg_pn = self.tinfoil.cooker.recipecaches[''].pkg_pn
         (latest_versions, preferred_versions) = self.tinfoil.find_providers()
