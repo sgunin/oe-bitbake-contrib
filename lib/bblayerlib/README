@@ -1,0 +1,11 @@
+The bblayerlib module is designed to manage the conf/bblayers.conf file
+and related actions.
+
+It provides a common interface to:
+   fetch-layers   - Fetch one or more layers from a remote SCM
+   add-layers     - Add one or more layers to bblayers.conf
+   remove-layers  - Remove one or more layers from bblayers.conf
+   get-layer-info - Get a list of currently configured layers
+
+TODO:
+
