@@ -279,6 +279,11 @@ class BBLayers():
                         continue
                     inherits.append(classname)
 
+                recipe_info = tinfoil.get_recipe_info(pn)
+
+                if recipe_info:
+                    logger.plain('recipe info: %s' % recipe_info._recipecache._cache.keys())
+
                 if not full:
                     recipe_data = self.data.createCopy()
                     recipe_data.setVar("PN", pn)

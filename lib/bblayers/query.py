@@ -128,11 +128,7 @@ skipped recipes will also be listed, with a " (skipped)" suffix.
 
         bblayers = bblayerlib.BBLayers(self.tinfoil.config_data)
         index = bblayers.load_bblayers()
-        index = bblayers.load_recipes(tinfoil=self.tinfoil, full=False)
-
-        for id, recipe in index.recipes.items():
-            logger.plain('%s' % (recipe._data))
-            
+        index = bblayers.load_recipes(tinfoil=self.tinfoil, full=True)
 
         sys.exit(1)
 

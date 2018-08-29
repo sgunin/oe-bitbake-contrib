@@ -68,7 +68,7 @@ def main():
     tinfoil = bb.tinfoil.Tinfoil(tracking=True)
     tinfoil.logger.setLevel(logger.getEffectiveLevel())
     try:
-        tinfoil.prepare(True)
+        tinfoil.prepare(True, extra_features=bb.cooker.CookerFeatures.HOB_EXTRA_CACHES)
         for path in ([topdir] +
                     tinfoil.config_data.getVar('BBPATH').split(':')):
             pluginpath = os.path.join(path, 'lib', 'bblayers')
