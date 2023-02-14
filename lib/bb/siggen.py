@@ -333,11 +333,13 @@ class SignatureGeneratorBasic(SignatureGenerator):
         for dep in self.runtaskdeps[tid]:
             data += self.get_unihash(dep)
 
+        datalist = []
         for (f, cs) in self.file_checksum_values[tid]:
             if cs:
                 if "/./" in f:
-                    data += "./" + f.split("/./")[1]
-                data += cs
+                    datalist.extend(("./", f.split("/./")[1]))
+                datalist.append(cs)
+        data += "".join(datalist)
 
         if tid in self.taints:
             if self.taints[tid].startswith("nostamp:"):
