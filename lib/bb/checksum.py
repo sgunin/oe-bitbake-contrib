@@ -111,6 +111,9 @@ class FileChecksumCache(MultiProcessCache):
                         dirchecksums.append((fullpth, checksum))
             return dirchecksums
 
+        import time
+        start_time = time.time()
+
         checksums = []
         for pth in filelist_regex.split(filelist):
             if not pth:
@@ -141,4 +144,7 @@ class FileChecksumCache(MultiProcessCache):
                     checksums.append((pth, checksum))
 
         checksums.sort(key=operator.itemgetter(1))
+        stop_time = time.time()
+        if "webruntime" in pn:
+            bb.warn("get_checksums[%s] took %s ms" % (pn, round((stop_time - start_time)*1000, 2)))
         return checksums

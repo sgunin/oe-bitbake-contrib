@@ -326,6 +326,8 @@ class SignatureGeneratorBasic(SignatureGenerator):
         return
 
     def get_taskhash(self, tid, deps, dataCaches):
+        import time
+        start_time = time.time()
 
         data = self.basehash[tid]
         for dep in self.runtaskdeps[tid]:
@@ -345,6 +347,10 @@ class SignatureGeneratorBasic(SignatureGenerator):
 
         h = hashlib.sha256(data.encode("utf-8")).hexdigest()
         self.taskhash[tid] = h
+        stop_time = time.time()
+        if "webruntime" in tid:
+            bb.warn("get_taskhash[%s] took %s ms" % (tid, round((stop_time - start_time)*1000, 2)))
+
         #d.setVar("BB_TASKHASH:task-%s" % task, taskhash[task])
         return h
 
