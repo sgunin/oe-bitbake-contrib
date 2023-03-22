@@ -27,6 +27,7 @@ import bb.persist_data, bb.utils
 import bb.checksum
 import bb.process
 import bb.event
+from bb.trace import TraceUnpack
 
 __version__ = "2"
 _checksum_cache = bb.checksum.FileChecksumCache()
@@ -1284,6 +1285,7 @@ class FetchData(object):
         if not self.pswd and "pswd" in self.parm:
             self.pswd = self.parm["pswd"]
         self.setup = False
+        self.destdir = None
 
         def configure_checksum(checksum_id):
             if "name" in self.parm:
@@ -1468,7 +1470,7 @@ class FetchMethod(object):
         """
         raise NoMethodError(urldata.url)
 
-    def unpack(self, urldata, rootdir, data):
+    def unpack(self, urldata, rootdir, data, trace):
         iterate = False
         file = urldata.localpath
 
@@ -1559,6 +1561,8 @@ class FetchMethod(object):
             bb.utils.mkdirhier(unpackdir)
         else:
             unpackdir = rootdir
+        urldata.destdir = unpackdir
+        urldata.is_unpacked_archive = unpack and cmd
 
         if not unpack or not cmd:
             # If file == dest, then avoid any copies, as we already put the file into dest!
@@ -1574,6 +1578,7 @@ class FetchMethod(object):
                     if urlpath.find("/") != -1:
                         destdir = urlpath.rsplit("/", 1)[0] + '/'
                         bb.utils.mkdirhier("%s/%s" % (unpackdir, destdir))
+                        urldata.destdir = "%s/%s" % (unpackdir, destdir)
                 cmd = 'cp -fpPRH "%s" "%s"' % (file, destdir)
 
         if not cmd:
@@ -1850,25 +1855,68 @@ class Fetch(object):
             if not ret:
                 raise FetchError("URL %s doesn't work" % u, u)
 
-    def unpack(self, root, urls=None):
+    def unpack(self, root, urls=None, trace=None):
         """
-        Unpack urls to root
+        Unpack urls to a tmp dir, trace, and then move everything to root
         """
 
         if not urls:
             urls = self.urls
+        if trace:
+            # the unpack method is recursively called by gitsm and npmsw
+            # fetchers to unpack modules; in such case, we need to pass through
+            # the trace object and avoid committing changes and moving tmpdir
+            # contents to root
+            destdir = root
+            is_module = True
+        else:
+            trace = TraceUnpack(root, self.d)
+            destdir = trace.tmpdir
+            is_module = False
 
         for u in urls:
             ud = self.ud[u]
+            # absolute subdir, destsuffix and subpath params wouldn't work when
+            # unpacking in the tmp dir, convert them to relative paths
+            realroot = os.path.realpath(root)
+            params = [ 'subdir', 'destsuffix', 'subpath' ]
+            for p in params:
+                if not ud.parm.get(p):
+                    continue
+                if os.path.isabs(ud.parm[p]):
+                    realpath = os.path.realpath(ud.parm[p])
+                    if realpath.startswith(realroot):
+                        ud.parm[p] = os.path.relpath(realpath, realroot)
             ud.setup_localpath(self.d)
 
             if ud.lockfile:
                 lf = bb.utils.lockfile(ud.lockfile)
 
-            ud.method.unpack(ud, root, self.d)
+            ud.method.unpack(ud, destdir, self.d, trace)
 
             if ud.lockfile:
                 bb.utils.unlockfile(lf)
+
+            if ud.type in [ "npmsw", "gitsm" ]:
+                # changes already committed in ud.method.unpack, see
+                # bb.fetch2.npmsw.NpmShrinkWrap.unpack and
+                # bb.fetch2.gitsm.GitSM.unpack
+                if not is_module:
+                    trace.move2root()
+                continue
+
+            if hasattr(ud, "nocheckout") and ud.nocheckout:
+                logger.warning(
+                    "Can't trace sources for"
+                    " %s because repo has not been checked out" % u)
+                continue
+
+            trace.commit(u, ud)
+            trace.move2root()
+
+        if not is_module:
+            trace.write_data()
+            trace.close()
 
     def clean(self, urls=None):
         """

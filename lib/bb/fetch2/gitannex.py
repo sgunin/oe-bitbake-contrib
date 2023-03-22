@@ -62,7 +62,7 @@ class GitANNEX(Git):
             runfetchcmd("%s annex get" % ud.basecmd, d, workdir=dest)
             runfetchcmd("chmod u+w -R %s/.git/annex" % (dest), d, quiet=True, workdir=dest)
 
-    def unpack(self, ud, destdir, d):
+    def unpack(self, ud, destdir, d, trace):
         Git.unpack(self, ud, destdir, d)
 
         try:

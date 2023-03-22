@@ -289,11 +289,12 @@ class Npm(FetchMethod):
         self._setup_proxy(ud, d)
         ud.proxy.download()
 
-    def unpack(self, ud, rootdir, d):
+    def unpack(self, ud, rootdir, d, trace):
         """Unpack the downloaded archive"""
         destsuffix = ud.parm.get("destsuffix", "npm")
         destdir = os.path.join(rootdir, destsuffix)
         npm_unpack(ud.localpath, destdir, d)
+        ud.destdir = destdir
 
     def clean(self, ud, d):
         """Clean any existing full or partial download"""

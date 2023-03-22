@@ -419,7 +419,9 @@ class Git(FetchMethod):
             # releases of Git LFS.
             with tempfile.TemporaryDirectory(dir=d.getVar('DL_DIR')) as tmpdir:
                 # Do the checkout. This implicitly involves a Git LFS fetch.
-                Git.unpack(self, ud, tmpdir, d)
+                Git.unpack(self, ud, tmpdir, d, trace={})
+                # (this is just a temporary unpack to force LFS blob fetching, don't
+                # need to trace anything at this point)
 
                 # Scoop up a copy of any stuff that Git LFS downloaded. Merge them into
                 # the bare clonedir.
@@ -534,7 +536,7 @@ class Git(FetchMethod):
         shallow_cmd.extend(shallow_revisions)
         runfetchcmd(subprocess.list2cmdline(shallow_cmd), d, workdir=dest)
 
-    def unpack(self, ud, destdir, d):
+    def unpack(self, ud, destdir, d, trace):
         """ unpack the downloaded src to destdir"""
 
         subdir = ud.parm.get("subdir")

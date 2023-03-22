@@ -185,6 +185,8 @@ class NpmShrinkWrap(FetchMethod):
                 "extrapaths": extrapaths,
                 "destsuffix": destsuffix,
                 "unpack": unpack,
+                "deptree": deptree,
+                "version": version,
             })
 
         try:
@@ -248,35 +250,38 @@ class NpmShrinkWrap(FetchMethod):
         """Fetch url"""
         ud.proxy.download()
 
-    def unpack(self, ud, rootdir, d):
+    def unpack(self, ud, rootdir, d, trace):
         """Unpack the downloaded dependencies"""
-        destdir = d.getVar("S")
-        destsuffix = ud.parm.get("destsuffix")
-        if destsuffix:
-            destdir = os.path.join(rootdir, destsuffix)
+        destsuffix = ud.parm.get("destsuffix") or os.path.relpath(d.getVar("S"), d.getVar("WORKDIR"))
+        destdir = os.path.join(rootdir, destsuffix)
+        ud.destdir = destdir
 
         bb.utils.mkdirhier(destdir)
         bb.utils.copyfile(ud.shrinkwrap_file,
                           os.path.join(destdir, "npm-shrinkwrap.json"))
+        trace.commit(ud.url, ud)
 
         auto = [dep["url"] for dep in ud.deps if not dep["localpath"]]
         manual = [dep for dep in ud.deps if dep["localpath"]]
 
         if auto:
-            ud.proxy.unpack(destdir, auto)
+            ud.proxy.unpack(destdir, auto, trace=trace)
 
         for dep in manual:
             depdestdir = os.path.join(destdir, dep["destsuffix"])
             if dep["url"]:
                 npm_unpack(dep["localpath"], depdestdir, d)
+                u = dep["url"]
             else:
                 depsrcdir= os.path.join(destdir, dep["localpath"])
+                u = dep["localpath"]
                 if dep["unpack"]:
                     npm_unpack(depsrcdir, depdestdir, d)
                 else:
                     bb.utils.mkdirhier(depdestdir)
                     cmd = 'cp -fpPRH "%s/." .' % (depsrcdir)
                     runfetchcmd(cmd, d, workdir=depdestdir)
+            trace.commit(u, ud, subdir=dep["destsuffix"])
 
     def clean(self, ud, d):
         """Clean any existing full or partial download"""

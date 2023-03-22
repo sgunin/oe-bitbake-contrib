@@ -44,6 +44,7 @@ class GitSM(Git):
         paths = {}
         revision = {}
         uris = {}
+        urls = {}
         subrevision = {}
 
         def parse_gitmodules(gitmodules):
@@ -137,8 +138,9 @@ class GitSM(Git):
             ld.setVar('SRCREV_FORMAT', module)
 
             function(ud, url, module, paths[module], workdir, ld)
+            urls[module] = url
 
-        return submodules != []
+        return submodules, paths, revision, uris, urls, subrevision
 
     def need_update(self, ud, d):
         if Git.need_update(self, ud, d):
@@ -199,7 +201,7 @@ class GitSM(Git):
         else:
             self.process_submodules(ud, ud.clonedir, download_submodule, d)
 
-    def unpack(self, ud, destdir, d):
+    def unpack(self, ud, destdir, d, trace):
         def unpack_submodules(ud, url, module, modpath, workdir, d):
             url += ";bareclone=1;nobranch=1"
 
@@ -211,7 +213,7 @@ class GitSM(Git):
 
             try:
                 newfetch = Fetch([url], d, cache=False)
-                newfetch.unpack(root=os.path.dirname(os.path.join(repo_conf, 'modules', module)))
+                newfetch.unpack(root=os.path.dirname(os.path.join(repo_conf, 'modules', module)), trace=trace)
             except Exception as e:
                 logger.error('gitsm: submodule unpack failed: %s %s' % (type(e).__name__, str(e)))
                 raise
@@ -231,15 +233,20 @@ class GitSM(Git):
                 logger.error("Unable to set git config core.bare to false for %s" % os.path.join(repo_conf, 'modules', module))
                 raise
 
-        Git.unpack(self, ud, destdir, d)
+        Git.unpack(self, ud, destdir, d, trace)
 
-        ret = self.process_submodules(ud, ud.destdir, unpack_submodules, d)
+        if not ud.nocheckout:
+            trace.commit(ud.url, ud)
 
-        if not ud.bareclone and ret:
+        submodules, paths, revision, uris, urls, subrevision= self.process_submodules(ud, ud.destdir, unpack_submodules, d)
+
+        if not ud.bareclone and submodules:
             # All submodules should already be downloaded and configured in the tree.  This simply sets
             # up the configuration and checks out the files.  The main project config should remain
             # unmodified, and no download from the internet should occur.
-            runfetchcmd("%s submodule update --recursive --no-fetch" % (ud.basecmd), d, quiet=True, workdir=ud.destdir)
+            for m in submodules:
+                runfetchcmd("%s submodule update --recursive --no-fetch %s" % (ud.basecmd, paths[m]), d, quiet=True, workdir=ud.destdir)
+                trace.commit(urls[m], ud, subdir=paths[m], gitsm_revision=subrevision[m])
 
     def implicit_urldata(self, ud, d):
         import shutil, subprocess, tempfile

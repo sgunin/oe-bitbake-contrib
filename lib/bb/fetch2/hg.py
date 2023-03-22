@@ -234,7 +234,7 @@ class Hg(FetchMethod):
     def localpath(self, ud, d):
         return ud.pkgdir
 
-    def unpack(self, ud, destdir, d):
+    def unpack(self, ud, destdir, d, trace):
         """
         Make a local clone or export for the url
         """
@@ -242,6 +242,7 @@ class Hg(FetchMethod):
         revflag = "-r %s" % ud.revision
         subdir = ud.parm.get("destsuffix", ud.module)
         codir = "%s/%s" % (destdir, subdir)
+        ud.destdir = codir
 
         scmdata = ud.parm.get("scmdata", "")
         if scmdata != "nokeep":

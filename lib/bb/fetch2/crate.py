@@ -76,7 +76,7 @@ class Crate(Wget):
 
         logger.debug2("Fetching %s to %s" % (ud.url, ud.parm['downloadfilename']))
 
-    def unpack(self, ud, rootdir, d):
+    def unpack(self, ud, rootdir, d, trace):
         """
         Uses the crate to build the necessary paths for cargo to utilize it
         """
@@ -101,8 +101,10 @@ class Crate(Wget):
         pn = d.getVar('BPN')
         if pn == ud.parm.get('name'):
             cmd = "tar -xz --no-same-owner -f %s" % thefile
+            ud.destdir = rootdir
         else:
             cargo_bitbake = self._cargo_bitbake_path(rootdir)
+            ud.destdir = cargo_bitbake
 
             cmd = "tar -xz --no-same-owner -f %s -C %s" % (thefile, cargo_bitbake)
 
