@@ -28,7 +28,7 @@ import bb.checksum
 import bb.process
 import bb.event
 
-from .trace_base import TraceUnpackBase as TraceUnpack
+from .trace import TraceUnpack
 
 __version__ = "2"
 _checksum_cache = bb.checksum.FileChecksumCache()
