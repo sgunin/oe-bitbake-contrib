@@ -28,6 +28,8 @@ import bb.checksum
 import bb.process
 import bb.event
 
+from .trace_base import TraceUnpackBase as TraceUnpack
+
 __version__ = "2"
 _checksum_cache = bb.checksum.FileChecksumCache()
 
@@ -1279,6 +1281,7 @@ class FetchData(object):
         if not self.pswd and "pswd" in self.parm:
             self.pswd = self.parm["pswd"]
         self.setup = False
+        self.destdir = None
 
         def configure_checksum(checksum_id):
             if "name" in self.parm:
@@ -1554,6 +1557,8 @@ class FetchMethod(object):
             bb.utils.mkdirhier(unpackdir)
         else:
             unpackdir = rootdir
+        urldata.destdir = unpackdir
+        urldata.is_unpacked_archive = unpack and cmd
 
         if not unpack or not cmd:
             # If file == dest, then avoid any copies, as we already put the file into dest!
@@ -1569,6 +1574,7 @@ class FetchMethod(object):
                     if urlpath.find("/") != -1:
                         destdir = urlpath.rsplit("/", 1)[0] + '/'
                         bb.utils.mkdirhier("%s/%s" % (unpackdir, destdir))
+                        urldata.destdir = "%s/%s" % (unpackdir, destdir)
                 cmd = 'cp -fpPRH "%s" "%s"' % (file, destdir)
 
         if not cmd:
@@ -1852,25 +1858,68 @@ class Fetch(object):
             if not ret:
                 raise FetchError("URL %s doesn't work" % u, u)
 
-    def unpack(self, root, urls=None):
+    def unpack(self, root, urls=None, is_module=False, checkout_destdir=None):
         """
-        Unpack urls to root
+        Unpack urls to a tmp dir, trace, and then move everything to root
+
+        is_module needs to be set to true when this method is recursively called
+        by a fetcher's unpack method to unpack (sub)modules (gitsm, npmsw)
+
+        checkout_destdir needs to be passed when this method is recursively
+        called by gitsm fetcher
         """
 
         if not urls:
             urls = self.urls
+        if is_module:
+            destdir = root
+        else:
+            trace = TraceUnpack(root, self.d)
+            destdir = trace.tmpdir
 
         for u in urls:
             ud = self.ud[u]
+            # absolute subdir, destsuffix and subpath params wouldn't work when
+            # unpacking in the tmp dir, convert them to relative paths
+            realroot = os.path.realpath(root)
+            params = [ 'subdir', 'destsuffix', 'subpath' ]
+            for p in params:
+                if not ud.parm.get(p):
+                    continue
+                if os.path.isabs(ud.parm[p]):
+                    realpath = os.path.realpath(ud.parm[p])
+                    if realpath.startswith(realroot):
+                        ud.parm[p] = os.path.relpath(realpath, realroot)
             ud.setup_localpath(self.d)
+            ud.rootdir = root
+
+            if hasattr(ud, "checkout_destdir"):
+                ud.checkout_destdir = checkout_destdir
 
             if ud.lockfile:
                 lf = bb.utils.lockfile(ud.lockfile)
 
-            ud.method.unpack(ud, root, self.d)
+            ud.method.unpack(ud, destdir, self.d)
 
             if ud.lockfile:
                 bb.utils.unlockfile(lf)
+
+            if is_module:
+                continue
+
+            if hasattr(ud, "nocheckout") and ud.nocheckout:
+                logger.warning(
+                    "Can't trace sources for"
+                    " %s because repo has not been checked out" % u)
+            else:
+                trace.commit(u, ud)
+
+            trace.move2root()
+
+        if is_module:
+            return
+        trace.write_data()
+        trace.close()
 
     def clean(self, urls=None):
         """

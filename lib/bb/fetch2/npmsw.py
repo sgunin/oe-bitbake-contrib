@@ -66,6 +66,9 @@ class NpmShrinkWrap(FetchMethod):
     def urldata_init(self, ud, d):
         """Init npmsw specific variables within url data"""
 
+        # initialize module_data (for module source tracing)
+        ud.module_data = []
+
         # Get the 'shrinkwrap' parameter
         ud.shrinkwrap_file = re.sub(r"^npmsw://", "", ud.url.split(";")[0])
 
@@ -250,20 +253,33 @@ class NpmShrinkWrap(FetchMethod):
 
     def unpack(self, ud, rootdir, d):
         """Unpack the downloaded dependencies"""
-        destdir = d.getVar("S")
-        destsuffix = ud.parm.get("destsuffix")
-        if destsuffix:
-            destdir = os.path.join(rootdir, destsuffix)
+        # rootdir param is a temporary dir. The real rootdir, where sources are
+        # moved after being traced, is stored in ud.rootdir.
+        destsuffix = ud.parm.get("destsuffix") or os.path.relpath(d.getVar("S"), ud.rootdir)
+        destdir = os.path.join(rootdir, destsuffix)
+        ud.destdir = destdir
 
         bb.utils.mkdirhier(destdir)
         bb.utils.copyfile(ud.shrinkwrap_file,
                           os.path.join(destdir, "npm-shrinkwrap.json"))
 
+        for dep in ud.deps:
+            dep_destdir = os.path.join(destdir, dep["destsuffix"])
+            # to get parent destdir, we get rid of the last 2 path elements
+            # (node_modules/<module_name>)
+            dep_parent_destdir = "/".join(dep_destdir.split("/")[:-2])
+            ud.module_data.append({
+                "url": dep["url"] or dep["localpath"],
+                "destdir": dep_destdir.rstrip("/"),
+                "parent_destdir": dep_parent_destdir.rstrip("/"),
+                "revision": None
+            })
+
         auto = [dep["url"] for dep in ud.deps if not dep["localpath"]]
         manual = [dep for dep in ud.deps if dep["localpath"]]
 
         if auto:
-            ud.proxy.unpack(destdir, auto)
+            ud.proxy.unpack(destdir, auto, is_module=True)
 
         for dep in manual:
             depdestdir = os.path.join(destdir, dep["destsuffix"])

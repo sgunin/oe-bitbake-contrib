@@ -242,6 +242,7 @@ class Hg(FetchMethod):
         revflag = "-r %s" % ud.revision
         subdir = ud.parm.get("destsuffix", ud.module)
         codir = "%s/%s" % (destdir, subdir)
+        ud.destdir = codir
 
         scmdata = ud.parm.get("scmdata", "")
         if scmdata != "nokeep":
