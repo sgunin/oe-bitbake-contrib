@@ -238,6 +238,7 @@ class RunQueueScheduler(object):
         # this is the case, otherwise the pressure limitation could result in no tasks
         # being active and no new tasks started thereby, at times, breaking the scheduler.
         if self.rq.stats.active and self.exceeds_max_pressure():
+            bb.note("Using only %s/%s tasks due to exceeded max pressure" % (len(self.rq.runq_running.difference(self.rq.runq_complete)), self.rq.number_tasks))
             return None
 
         # Filter out tasks that have a max number of threads that have been exceeded
