@@ -28,7 +28,7 @@ import bb.checksum
 import bb.process
 import bb.event
 
-from .trace_base import TraceUnpackBase
+from .trace import TraceUnpack
 
 __version__ = "2"
 _checksum_cache = bb.checksum.FileChecksumCache()
@@ -1877,7 +1877,7 @@ class Fetch(object):
         if is_module:
             destdir = root
         else:
-            trace = TraceUnpackBase(root, self.d)
+            trace = TraceUnpack(root, self.d)
             destdir = trace.tmpdir
 
         for u in urls:
