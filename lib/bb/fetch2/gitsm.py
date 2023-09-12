@@ -40,7 +40,7 @@ class GitSM(Git):
         ud.checkout_destdir = None
         ud.is_module = False
 
-    def process_submodules(self, ud, workdir, function, d):
+    def process_submodules(self, ud, workdir, function, d, save_moduledata=False):
         """
         Iterate over all of the submodules in this repository and execute
         the 'function' for each of them.
@@ -151,7 +151,7 @@ class GitSM(Git):
 
             function(ud, url, module, paths[module], workdir, ld)
 
-            if function.__name__ == "unpack_submodules":
+            if save_moduledata:
                 destdir = os.path.join(ud.checkout_destdir, paths[module])
                 ud.module_data.append({
                     "url": url,
@@ -265,7 +265,7 @@ class GitSM(Git):
             # for main git repo, checkout destdir corresponds with unpack destdir
             ud.checkout_destdir = ud.destdir
 
-        ret = self.process_submodules(ud, ud.destdir, unpack_submodules, d)
+        ret = self.process_submodules(ud, ud.destdir, unpack_submodules, d, True)
 
         if not ud.bareclone and ret:
             # All submodules should already be downloaded and configured in the tree.  This simply
