@@ -101,8 +101,10 @@ class Crate(Wget):
         bp = d.getVar('BP')
         if bp == ud.parm.get('name'):
             cmd = "tar -xz --no-same-owner -f %s" % thefile
+            ud.destdir = rootdir
         else:
             cargo_bitbake = self._cargo_bitbake_path(rootdir)
+            ud.destdir = cargo_bitbake
 
             cmd = "tar -xz --no-same-owner -f %s -C %s" % (thefile, cargo_bitbake)
 

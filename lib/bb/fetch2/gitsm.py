@@ -34,6 +34,12 @@ class GitSM(Git):
         """
         return ud.type in ['gitsm']
 
+    def urldata_init(self, ud, d):
+        super(GitSM, self).urldata_init(ud, d)
+        ud.module_data = []
+        ud.checkout_destdir = None
+        ud.is_module = False
+
     def process_submodules(self, ud, workdir, function, d):
         """
         Iterate over all of the submodules in this repository and execute
@@ -145,6 +151,15 @@ class GitSM(Git):
 
             function(ud, url, module, paths[module], workdir, ld)
 
+            if function.__name__ == "unpack_submodules":
+                destdir = os.path.join(ud.checkout_destdir, paths[module])
+                ud.module_data.append({
+                    "url": url,
+                    "destdir": destdir.rstrip("/"),
+                    "parent_destdir": ud.checkout_destdir.rstrip("/"),
+                    "revision": subrevision[module]
+                })
+
         return submodules != []
 
     def need_update(self, ud, d):
@@ -216,9 +231,15 @@ class GitSM(Git):
             else:
                 repo_conf = os.path.join(ud.destdir, '.git')
 
+            checkout_destdir = os.path.join(ud.checkout_destdir, modpath)
+
             try:
                 newfetch = Fetch([url], d, cache=False)
+                newud = newfetch.ud[url]
+                newud.checkout_destdir = checkout_destdir
+                newud.is_module = True
                 newfetch.unpack(root=os.path.dirname(os.path.join(repo_conf, 'modules', module)))
+                ud.module_data += newud.module_data
             except Exception as e:
                 logger.error('gitsm: submodule unpack failed: %s %s' % (type(e).__name__, str(e)))
                 raise
@@ -239,6 +260,10 @@ class GitSM(Git):
                 raise
 
         Git.unpack(self, ud, destdir, d)
+
+        if not ud.checkout_destdir:
+            # for main git repo, checkout destdir corresponds with unpack destdir
+            ud.checkout_destdir = ud.destdir
 
         ret = self.process_submodules(ud, ud.destdir, unpack_submodules, d)
 

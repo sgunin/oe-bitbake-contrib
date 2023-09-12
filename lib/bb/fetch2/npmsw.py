@@ -79,6 +79,8 @@ class NpmShrinkWrap(FetchMethod):
 
     def urldata_init(self, ud, d):
         """Init npmsw specific variables within url data"""
+        ud.module_data = []
+        ud.is_module = False
 
         # Get the 'shrinkwrap' parameter
         ud.shrinkwrap_file = re.sub(r"^npmsw://", "", ud.url.split(";")[0])
@@ -192,6 +194,7 @@ class NpmShrinkWrap(FetchMethod):
                 raise ParameterError("Unsupported dependency: %s" % name, ud.url)
 
             ud.deps.append({
+                "name": name,
                 "url": url,
                 "localpath": localpath,
                 "extrapaths": extrapaths,
@@ -270,15 +273,28 @@ class NpmShrinkWrap(FetchMethod):
         destsuffix = ud.parm.get("destsuffix")
         if destsuffix:
             destdir = os.path.join(rootdir, destsuffix)
+        ud.destdir = destdir
 
         bb.utils.mkdirhier(destdir)
         bb.utils.copyfile(ud.shrinkwrap_file,
                           os.path.join(destdir, "npm-shrinkwrap.json"))
 
+        for dep in ud.deps:
+            dep_destdir = os.path.join(destdir, dep["destsuffix"])
+            dep_parent_destdir = re.sub("/node_modules/"+dep["name"]+"$", "", dep_destdir)
+            ud.module_data.append({
+                "url": dep["url"] or dep["localpath"],
+                "destdir": dep_destdir.rstrip("/"),
+                "parent_destdir": dep_parent_destdir.rstrip("/"),
+                "revision": None
+            })
+
         auto = [dep["url"] for dep in ud.deps if not dep["localpath"]]
         manual = [dep for dep in ud.deps if dep["localpath"]]
 
         if auto:
+            for url in ud.proxy.ud:
+                ud.proxy.ud[url].is_module = True
             ud.proxy.unpack(destdir, auto)
 
         for dep in manual:

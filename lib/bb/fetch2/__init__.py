@@ -27,6 +27,7 @@ import bb.persist_data, bb.utils
 import bb.checksum
 import bb.process
 import bb.event
+from .trace import Trace
 
 __version__ = "2"
 _checksum_cache = bb.checksum.FileChecksumCache()
@@ -1298,6 +1299,7 @@ class FetchData(object):
         if not self.pswd and "pswd" in self.parm:
             self.pswd = self.parm["pswd"]
         self.setup = False
+        self.destdir = None
 
         def configure_checksum(checksum_id):
             if "name" in self.parm:
@@ -1576,6 +1578,8 @@ class FetchMethod(object):
             bb.utils.mkdirhier(unpackdir)
         else:
             unpackdir = rootdir
+        urldata.destdir = unpackdir
+        urldata.is_unpacked_archive = unpack and cmd
 
         if not unpack or not cmd:
             # If file == dest, then avoid any copies, as we already put the file into dest!
@@ -1591,6 +1595,7 @@ class FetchMethod(object):
                     if urlpath.find("/") != -1:
                         destdir = urlpath.rsplit("/", 1)[0] + '/'
                         bb.utils.mkdirhier("%s/%s" % (unpackdir, destdir))
+                        urldata.destdir = "%s/%s" % (unpackdir, destdir)
                 cmd = 'cp -fpPRH "%s" "%s"' % (file, destdir)
 
         if not cmd:
@@ -1882,6 +1887,11 @@ class Fetch(object):
         if not urls:
             urls = self.urls
 
+        if d.getVar("SRCTRACE_ENABLE") == "1" or os.environ.get("SRCTRACE_ENABLE") == "1":
+            trace = Trace(root, self.d, self.ud)
+        else:
+            trace = None
+
         for u in urls:
             ud = self.ud[u]
             ud.setup_localpath(self.d)
@@ -1890,9 +1900,15 @@ class Fetch(object):
                 lf = bb.utils.lockfile(ud.lockfile)
 
             ud.method.unpack(ud, root, self.d)
+            if trace is not None:
+                trace.commit(u, ud)
 
             if ud.lockfile:
                 bb.utils.unlockfile(lf)
+
+        if trace is not None:
+            trace.write_data()
+
 
     def clean(self, urls=None):
         """
