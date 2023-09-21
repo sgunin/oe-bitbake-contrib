@@ -140,6 +140,35 @@ class MissingChecksumEvent(bb.event.Event):
         bb.event.Event.__init__(self)
 
 
+class DummyUnpackTracer(object):
+
+    def start(self, unpackdir, ud_dict, d):
+        return
+
+    def start_url(self, url):
+        return
+
+    def unpack(self, unpack_type, destdir, ud=None):
+        return
+
+    def finish_url(self, url):
+        return
+
+    def start_module(self, module_type, unpackdir, ud_dict, parent_ud, d):
+        return
+
+    def module(self, module_type, url, name, path, revision=None):
+        return
+
+    def finish_module(self, module_type, unpackdir, ud_dict, parent_ud, d):
+        return
+
+    def complete(self):
+        return
+
+unpack_tracer = DummyUnpackTracer()
+
+
 class URI(object):
     """
     A class representing a generic URI, with methods for
@@ -1578,6 +1607,7 @@ class FetchMethod(object):
             unpackdir = rootdir
 
         if not unpack or not cmd:
+            urldata.unpack_tracer.unpack("file-copy", unpackdir)
             # If file == dest, then avoid any copies, as we already put the file into dest!
             dest = os.path.join(unpackdir, os.path.basename(file))
             if file != dest and not (os.path.exists(dest) and os.path.samefile(file, dest)):
@@ -1591,7 +1621,12 @@ class FetchMethod(object):
                     if urlpath.find("/") != -1:
                         destdir = urlpath.rsplit("/", 1)[0] + '/'
                         bb.utils.mkdirhier("%s/%s" % (unpackdir, destdir))
+                        urldata.unpack_tracer.unpack(
+                            "file-copy", "%s/%s" % (unpackdir, destdir))
                 cmd = 'cp -fpPRH "%s" "%s"' % (file, destdir)
+
+        else:
+            urldata.unpack_tracer.unpack("archive-extract", unpackdir)
 
         if not cmd:
             return
@@ -1707,6 +1742,7 @@ class Fetch(object):
             if url not in self.ud:
                 try:
                     self.ud[url] = FetchData(url, d, localonly)
+                    self.ud[url].unpack_tracer = unpack_tracer
                 except NonLocalMethod:
                     if localonly:
                         self.ud[url] = None
@@ -1882,6 +1918,8 @@ class Fetch(object):
         if not urls:
             urls = self.urls
 
+        unpack_tracer.start(root, self.ud, self.d)
+
         for u in urls:
             ud = self.ud[u]
             ud.setup_localpath(self.d)
@@ -1889,10 +1927,14 @@ class Fetch(object):
             if ud.lockfile:
                 lf = bb.utils.lockfile(ud.lockfile)
 
+            unpack_tracer.start_url(u)
             ud.method.unpack(ud, root, self.d)
+            unpack_tracer.finish_url(u)
 
             if ud.lockfile:
                 bb.utils.unlockfile(lf)
+
+        unpack_tracer.complete()
 
     def clean(self, urls=None):
         """

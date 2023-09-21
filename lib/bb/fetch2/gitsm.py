@@ -218,7 +218,9 @@ class GitSM(Git):
 
             try:
                 newfetch = Fetch([url], d, cache=False)
+                ud.unpack_tracer.start_module("git", repo_conf, newfetch.ud, ud, d)
                 newfetch.unpack(root=os.path.dirname(os.path.join(repo_conf, 'modules', module)))
+                ud.unpack_tracer.finish_module("git", repo_conf, newfetch.ud, ud, d)
             except Exception as e:
                 logger.error('gitsm: submodule unpack failed: %s %s' % (type(e).__name__, str(e)))
                 raise
@@ -237,6 +239,8 @@ class GitSM(Git):
             except:
                 logger.error("Unable to set git config core.bare to false for %s" % os.path.join(repo_conf, 'modules', module))
                 raise
+
+            ud.unpack_tracer.module("git", url, module, modpath, d.getVar("SRCREV_%s" % module))
 
         Git.unpack(self, ud, destdir, d)
 
