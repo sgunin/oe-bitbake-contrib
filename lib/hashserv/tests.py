@@ -364,13 +364,12 @@ class HashEquivalenceCommonTests(object):
         # Check the hash via the read-only server
         self.assertClientGetHash(ro_client, taskhash, unihash)
 
-        # Ensure that reporting via the read-only server fails
+        # Ensure that reporting via the read-only server doesn't modify the database
         taskhash2 = 'c665584ee6817aa99edfc77a44dd853828279370'
         outhash2 = '3c979c3db45c569f51ab7626a4651074be3a9d11a84b1db076f5b14f7d39db44'
         unihash2 = '90e9bc1d1f094c51824adca7f8ea79a048d68824'
 
-        with self.assertRaises(ConnectionError):
-            ro_client.report_unihash(taskhash2, self.METHOD, outhash2, unihash2)
+        ro_client.report_unihash(taskhash2, self.METHOD, outhash2, unihash2)
 
         # Ensure that the database was not modified
         self.assertClientGetHash(self.client, taskhash2, None)

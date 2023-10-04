@@ -180,7 +180,11 @@ class ServerClient(bb.asyncrpc.AsyncServerConnection):
             'get-stats': self.handle_get_stats,
         })
 
-        if not read_only:
+        if read_only:
+            self.handlers.update({
+                'report': self.handle_readonly_report,
+            })
+        else:
             self.handlers.update({
                 'report': self.handle_report,
                 'report-equiv': self.handle_equivreport,
@@ -461,6 +465,27 @@ class ServerClient(bb.asyncrpc.AsyncServerConnection):
                 unihash = data['unihash']
 
             self.db.commit()
+
+            d = {
+                'taskhash': data['taskhash'],
+                'method': data['method'],
+                'unihash': unihash,
+            }
+
+        self.write_message(d)
+
+
+    async def handle_readonly_report(self, data):
+        with closing(self.db.cursor()) as cursor:
+
+            # Check if outhash is known
+            unihash_data = await self.get_unihash(cursor, data['method'], data['taskhash'])
+            if unihash_data is not None:
+                # outhash is known => retrieve unihash
+                unihash = unihash_data['unihash']
+            else:
+                # outhash is unknown => nothing to do
+                unihash = data['taskhash']
 
             d = {
                 'taskhash': data['taskhash'],
