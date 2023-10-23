@@ -11,6 +11,7 @@ import re, fcntl, os, string, stat, shutil, time
 import sys
 import errno
 import logging
+import ast
 import bb
 import bb.msg
 import locale
@@ -33,6 +34,7 @@ import random
 import socket
 import struct
 import tempfile
+from typing import Optional
 from subprocess import getstatusoutput
 from contextlib import contextmanager
 from ctypes import cdll
@@ -1863,3 +1865,11 @@ def lock_timeout(lock):
         yield held
     finally:
         lock.release()
+
+def ast_node_str_value(node: ast.AST) -> Optional[str]:
+    """
+    Returns node value if it is an `ast.Constant` str; None otherwise
+    """
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    return None
