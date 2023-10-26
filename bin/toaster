@@ -98,6 +98,10 @@ webserverStartAll()
         custom_extention web_start_postpend $ADDR_PORT
     fi
 
+    if [ ! -d ${BUILDDIR}/toaster_logs ]; then
+       mkdir ${BUILDDIR}/toaster_logs
+    fi
+
     return $retval
 }
 
