@@ -99,7 +99,7 @@ webserverStartAll()
     fi
 
     if [ ! -d ${BUILDDIR}/toaster_logs ]; then
-       mkdir ${BUILDDIR}/toaster_logs
+       mkdir "${BUILDDIR}/toaster_logs"
     fi
 
     return $retval
