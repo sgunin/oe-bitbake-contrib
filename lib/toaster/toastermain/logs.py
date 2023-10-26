@@ -109,7 +109,7 @@ LOGGING_SETTINGS = {
         'file_django': {
             'level': 'INFO',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': BUILDDIR / 'toaster_django.log',
+            'filename': BUILDDIR / 'toaster_logs/toaster_django.log',
             'when': 'D',  # interval type
             'interval': 1,  # defaults to 1
             'backupCount': 10,  # how many files to keep
@@ -118,7 +118,7 @@ LOGGING_SETTINGS = {
         'file_api': {
             'level': 'INFO',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': BUILDDIR / 'toaster_api.log',
+            'filename': BUILDDIR / 'toaster_logs/toaster_api.log',
             'when': 'D',
             'interval': 1,
             'backupCount': 10,
@@ -127,7 +127,7 @@ LOGGING_SETTINGS = {
         'file_toaster': {
             'level': 'INFO',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': BUILDDIR / 'toaster.log',
+            'filename': BUILDDIR / 'toaster_logs/toaster.log',
             'when': 'D',
             'interval': 1,
             'backupCount': 10,
