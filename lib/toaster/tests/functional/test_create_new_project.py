@@ -93,3 +93,42 @@ class TestCreateNewProject(SeleniumFunctionalTestCase):
                                      "//span[@id='project-release-title']"
                                      ).text),
                         'The project release is not defined')
+
+    def test_create_new_project_kirkstone(self):
+        """ Test create new project using:
+          - Project Name: Any string
+          - Release: Yocto Project 4.0 "Kirkstone" (option value: 1)
+          - Merge Toaster settings: True
+        """
+        release = 'Yocto Project 4.0 "Kirkstone"'
+        project_name = 'projectkirkstone'
+        self.get(reverse('newproject'))
+        self.driver.find_element(By.ID,
+                                 "new-project-name").send_keys(project_name)
+
+        select = Select(self.find('#projectversion'))
+        select.select_by_value(str(1))
+
+        # check merge toaster settings
+        checkbox = self.find('.checkbox-mergeattr')
+        if not checkbox.is_selected():
+            checkbox.click()
+
+        self.driver.find_element(By.ID,
+                                 "create-project-button").click()
+
+        element = self.wait_until_visible('#project-created-notification')
+        self.assertTrue(self.element_exists('#project-created-notification'),
+                        'Project creation notification not shown')
+        self.assertTrue(project_name in element.text,
+                        "New project name not in new project notification")
+        self.assertTrue(Project.objects.filter(name=project_name).count(),
+                        "New project not found in database")
+
+        # check release
+        self.assertTrue(re.search(
+            release,
+            self.driver.find_element(By.XPATH,
+                                     "//span[@id='project-release-title']"
+                                     ).text),
+                        'The project release is not defined')
