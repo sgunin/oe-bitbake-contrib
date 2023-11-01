@@ -2,7 +2,7 @@
 #
 # BitBake Toaster UI tests implementation
 #
-# Copyright (C) 2023 Savoir-faire Linux Inc
+# Copyright (C) 2023 Savoir-faire Linux
 #
 # SPDX-License-Identifier: GPL-2.0-only
 #
@@ -225,3 +225,28 @@ class TestCreateNewProject(SeleniumFunctionalTestCase):
         create_btn = self.driver.find_element(By.ID, "create-project-button")
         self.assertIsNotNone(create_btn.get_attribute('disabled'),
                         'Create button is not disabled')
+
+    def test_import_new_project(self):
+        """ Test import new project using:
+          - Project Name: Any string
+          - Project type: select (Import command line project)
+          - Import existing project directory: Wrong Path
+        """
+        project_name = 'projectimport'
+        self.get(reverse('newproject'))
+        self.driver.find_element(By.ID,
+                                 "new-project-name").send_keys(project_name)
+        # select import project
+        self.find('#type-import').click()
+
+        # set wrong path
+        wrong_path = '/wrongpath'
+        self.driver.find_element(By.ID,
+                                 "import-project-dir").send_keys(wrong_path)
+        self.driver.find_element(By.ID, "create-project-button").click()
+
+        # check error message
+        self.assertTrue(self.element_exists('.alert-danger'),
+                        'Allert message not shown')
+        self.assertTrue(wrong_path in self.find('.alert-danger').text,
+                        "Wrong path not in alert message")
