@@ -209,4 +209,19 @@ class TestCreateNewProject(SeleniumFunctionalTestCase):
                                      ).text),
                         'The project release is not defined')
 
+    def test_create_new_project_without_name(self):
+        """ Test create new project without project name """
+        self.get(reverse('newproject'))
 
+        select = Select(self.find('#projectversion'))
+        select.select_by_value(str(3))
+
+        # Check input name has required attribute
+        input_name = self.driver.find_element(By.ID, "new-project-name")
+        self.assertIsNotNone(input_name.get_attribute('required'),
+                        'Input name has not required attribute')
+
+        # Check create button is disabled
+        create_btn = self.driver.find_element(By.ID, "create-project-button")
+        self.assertIsNotNone(create_btn.get_attribute('disabled'),
+                        'Create button is not disabled')
