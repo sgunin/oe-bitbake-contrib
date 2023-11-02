@@ -7,7 +7,6 @@
 # Copyright (C) 2013-2016 Intel Corporation
 #
 
-from time import sleep
 from django.urls import reverse
 from django.utils import timezone
 from tests.browser.selenium_helpers import SeleniumTestCase
