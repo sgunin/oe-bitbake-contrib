@@ -13,6 +13,7 @@ import subprocess
 import signal
 import time
 import re
+import pytest
 
 from tests.browser.selenium_helpers_base import SeleniumTestCaseBase
 from tests.builds.buildtest import load_build_environment
@@ -22,6 +23,7 @@ from selenium.common.exceptions import NoSuchElementException
 
 logger = logging.getLogger("toaster")
 
+@pytest.mark.django_db
 class SeleniumFunctionalTestCase(SeleniumTestCaseBase):
     wait_toaster_time = 5
 
