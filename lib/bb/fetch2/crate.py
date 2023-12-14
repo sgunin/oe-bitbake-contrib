@@ -98,8 +98,10 @@ class Crate(Wget):
         pn = d.getVar('BPN')
         if pn == ud.parm.get('name'):
             cmd = "tar -xz --no-same-owner -f %s" % thefile
+            ud.unpack_tracer.unpack("crate-extract", rootdir)
         else:
             cargo_bitbake = self._cargo_bitbake_path(rootdir)
+            ud.unpack_tracer.unpack("cargo-extract", cargo_bitbake)
 
             cmd = "tar -xz --no-same-owner -f %s -C %s" % (thefile, cargo_bitbake)
 
