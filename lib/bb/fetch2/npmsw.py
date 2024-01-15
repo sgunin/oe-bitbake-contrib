@@ -61,7 +61,7 @@ def foreach_dependencies(shrinkwrap, callback=None, dev=False):
     packages = shrinkwrap.get("packages", None)
     if packages is not None:
         for package in packages:
-            if package != "":
+            if package.startswith('node_modules/'):
                 name = package.split('node_modules/')[-1]
                 package_infos = packages.get(package, {})
                 if dev == False and package_infos.get("dev", False):
@@ -99,9 +99,17 @@ class NpmShrinkWrap(FetchMethod):
             resolved = params.get("resolved", None)
             version = params.get("version", None)
             depname = params.get("name", None)
+            link = params.get("link", None)
+
+            # Handle local link sources without version
+            if not version and resolved and link:
+                localpath = resolved
+                if not localpath.endswith(".tgz"):
+                    unpack = False
 
             # Handle registry sources
-            if is_semver(version) and integrity:
+            elif is_semver(version) and integrity:
+
                 # Handle duplicate dependencies without url
                 if not resolved:
                     return
@@ -295,9 +303,15 @@ class NpmShrinkWrap(FetchMethod):
                 if dep["unpack"]:
                     npm_unpack(depsrcdir, depdestdir, d)
                 else:
-                    bb.utils.mkdirhier(depdestdir)
-                    cmd = 'cp -fpPRH "%s/." .' % (depsrcdir)
-                    runfetchcmd(cmd, d, workdir=depdestdir)
+                    if os.path.commonpath([os.path.abspath(depsrcdir)]) == os.path.commonpath([os.path.abspath(depsrcdir), os.path.abspath(depdestdir)]):
+                        # If the depsrcdir is some parent directory of depdestdir use symlink there, to avoid trying to copy itself
+                        bb.utils.mkdirhier(os.path.dirname(depdestdir))
+                        cmd = 'ln -snf "%s" "%s"' % (depsrcdir, depdestdir)
+                        runfetchcmd(cmd, d)
+                    else:
+                        bb.utils.mkdirhier(depdestdir)
+                        cmd = 'cp -fpPRH "%s/." .' % (depsrcdir)
+                        runfetchcmd(cmd, d, workdir=depdestdir)
 
     def clean(self, ud, d):
         """Clean any existing full or partial download"""
