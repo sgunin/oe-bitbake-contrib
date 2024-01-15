@@ -1,0 +1,11 @@
+{
+  "name": "@npm-local-link-sources/inner",
+  "version": "1.0.0",
+  "lockfileVersion": 1,
+  "requires": true,
+  "dependencies": {
+    "@npm-local-link-sources/upper": {
+      "version": "file:.."
+    }
+  }
+}
