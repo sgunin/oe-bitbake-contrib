@@ -98,6 +98,7 @@ class NpmShrinkWrap(FetchMethod):
             integrity = params.get("integrity", None)
             resolved = params.get("resolved", None)
             version = params.get("version", None)
+            depname = params.get("name", None)
 
             # Handle registry sources
             if is_semver(version) and integrity:
@@ -189,7 +190,7 @@ class NpmShrinkWrap(FetchMethod):
                 url = str(uri)
 
             else:
-                raise ParameterError("Unsupported dependency: %s" % name, ud.url)
+                raise ParameterError("Unsupported dependency: name '%s', depname '%s', version '%s', resolved '%s'" % (name, depname, version, resolved), ud.url)
 
             # name is needed by unpack tracer for module mapping
             ud.deps.append({
