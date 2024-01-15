@@ -2809,6 +2809,24 @@ class NPMTest(FetcherTest):
         self.assertTrue(os.path.exists(os.path.join(self.dldir, 'git2', 'gitlab.com.gitlab-examples.nodejs.git')))
 
     @skipIfNoNpm()
+    def test_npmsw_local_link_sources(self):
+        # generated with npm-10 in:
+        # lib/bb/tests/fetch-testdata/npm-local-link-sources/inner/
+        testdata = os.path.dirname(os.path.abspath(__file__)) + "/fetch-testdata"
+        testdir = os.path.join(testdata, 'npm-local-link-sources')
+
+        self.sdir = os.path.join(self.unpackdir, testdata[1:], 'npm-local-link-sources', 'inner')
+        self.d.setVar('S', os.path.join(self.sdir))
+
+        fetcher = bb.fetch.Fetch(['file://%s/' % testdir, 'npmsw://%s/inner/npm-shrinkwrap-v3.json' % testdir], self.d)
+        fetcher.download()
+        fetcher.unpack(self.unpackdir)
+
+        swf = os.path.join(self.sdir, 'npm-shrinkwrap-v3.json')
+        pkgf = os.path.join(self.sdir, 'node_modules', '@npm-local-link-sources/upper', 'package.json')
+        self.assertTrue(os.path.exists(swf), msg="%s doesn't exist" % swf)
+        self.assertTrue(os.path.exists(pkgf), msg="%s doesn't exist" % pkgf)
+
     @skipIfNoNetwork()
     def test_npmsw_dev(self):
         swfile = self.create_shrinkwrap_file({

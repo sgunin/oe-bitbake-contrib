@@ -1,0 +1,8 @@
+{
+  "name": "@npm-local-link-sources/inner",
+  "version": "1.0.0",
+  "description": "Inner project in npm-local-link-sources example",
+  "dependencies": {
+    "@npm-local-link-sources/upper": "file:../"
+  }
+}
