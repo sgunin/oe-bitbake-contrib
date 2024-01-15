@@ -143,7 +143,8 @@ class NpmShrinkWrap(FetchMethod):
                 localpath = os.path.join(d.getVar("DL_DIR"), localfile)
 
             # Handle local tarball and link sources
-            elif version.startswith("file"):
+            # TODO: properly resolve file:, file:// and missing file: prefix
+            elif version.startswith("file:"):
                 localpath = version[5:]
                 if not version.endswith(".tgz"):
                     unpack = False
