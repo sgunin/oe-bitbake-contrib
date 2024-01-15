@@ -1,0 +1,28 @@
+{
+  "name": "@npm-local-link-sources/inner",
+  "version": "1.0.0",
+  "lockfileVersion": 2,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "@npm-local-link-sources/inner",
+      "version": "1.0.0",
+      "dependencies": {
+        "@npm-local-link-sources/upper": "file:../"
+      }
+    },
+    "..": {
+      "name": "@npm-local-link-sources/upper",
+      "version": "1.0.0"
+    },
+    "node_modules/@npm-local-link-sources/upper": {
+      "resolved": "..",
+      "link": true
+    }
+  },
+  "dependencies": {
+    "@npm-local-link-sources/upper": {
+      "version": "file:.."
+    }
+  }
+}
