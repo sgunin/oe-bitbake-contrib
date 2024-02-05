@@ -49,7 +49,7 @@ class ActionPlugin(LayerPlugin):
         shutil.copy2(bblayers_conf, backup)
 
         try:
-            notadded, _ = bb.utils.edit_bblayers_conf(bblayers_conf, layerdirs, None)
+            notadded, _ = bb.utils.edit_bblayers_conf(bblayers_conf, layerdirs, None, args.prepend)
             self.tinfoil.modified_files()
             if not (args.force or notadded):
                 try:
@@ -267,6 +267,7 @@ build results (as the layer priority order has effectively changed).
     def register_commands(self, sp):
         parser_add_layer = self.add_command(sp, 'add-layer', self.do_add_layer, parserecipes=False)
         parser_add_layer.add_argument('layerdir', nargs='+', help='Layer directory/directories to add')
+        parser_add_layer.add_argument('--prepend', action='store_true', help='Prepend layer directory/directories')
 
         parser_remove_layer = self.add_command(sp, 'remove-layer', self.do_remove_layer, parserecipes=False)
         parser_remove_layer.add_argument('layerdir', nargs='+', help='Layer directory/directories to remove (wildcards allowed, enclose in quotes to avoid shell expansion)')
